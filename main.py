@@ -97,6 +97,8 @@ class Card:
     _rounded_corners = 0
     _margin_x = 10
     _margin_y = 20
+    _content_width = 10
+    _content_height = 10
 
     def __init__(self, filename: str, bg_color: tuple=(1, 1, 1, 1), rounded_corners: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, resolution: tuple=(1920, 1080)):
         """
@@ -130,7 +132,12 @@ class Card:
             raise TypeError('Filename must be a path')
 
         self._filename = filename
-    
+
+
+    def _update_content_res(self):
+        self._content_width = self._res_x - 2 * (self._res_x * (self._margin_x/100))
+        self._content_height = self._res_y - 2 * (self._res_y * (self._margin_y/100))        
+        
     @property
     def resolution(self):
         """Resolution of the card image file to be generated"""
@@ -144,6 +151,7 @@ class Card:
             
         self._res_x = res[0]
         self._res_y = res[1]
+        self._update_content_res()
 
     @property
     def bg_color(self):
@@ -194,6 +202,7 @@ class Card:
         if margin < 0 or margin > 100:
             raise ValueError('margin must be an integer between 0-100')        
         self._margin_x = margin
+        self._update_content_res()        
 
     @property
     def margin_y(self):
@@ -205,7 +214,8 @@ class Card:
             raise TypeError('margin must be an integer between 0-100')
         if margin < 0 or margin > 100:
             raise ValueError('margin must be an integer between 0-100')        
-        self._margin_y = margin        
+        self._margin_y = margin
+        self._update_content_res()
 
     def _init_image(self):
         """
@@ -229,8 +239,9 @@ class Card:
 
 class SimpleCard(Card):
     _divider = None
+    _divider_scale_factor = None
     
-    def __init__(self, filename: str, text: str, font_path: str, font_size: int=50, font_color: tuple=(0, 0, 0, 1), h_align: int=0, v_align: int=0, bg_color: tuple=(1, 1, 1, 1), rounded_corners: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, resolution: tuple=(1920, 1080), divider=None, auto_height: bool=True):
+    def __init__(self, filename: str, text: str, font_path: str, font_size: int=50, font_color: tuple=(0, 0, 0, 1), h_align: int=0, v_align: int=0, bg_color: tuple=(1, 1, 1, 1), rounded_corners: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, resolution: tuple=(1920, 1080), divider=None, divider_scale=None, auto_height: bool=True):
         """
         A card with just one field of body text. Supports an optional underline/accent item.
         
@@ -248,13 +259,17 @@ class SimpleCard(Card):
         :param int margin_y: Percentage for y margin (Default: 20)        
         :param tuple resolution: The resolution of the card (Default: (1920, 1080))
         :param path divider: Path to an image or SVG
+        :param float divider_scale: Scale factor for the divider
         :param bool auto_height: Whether to automatically determine the height of the card
         """
         super().__init__(filename, bg_color, rounded_corners, margin, margin_x, margin_y, resolution)
         self.body_text = TextField(text, font_path, font_size, font_color, h_align, v_align)
+        if divider:
+            self.divider = divider
+        if divider_scale:
+            self.divider_scale = divider_scale            
         if auto_height:
             self.auto_height()
-        #TODO Divider
 
     @property
     def body_text(self):
@@ -266,22 +281,40 @@ class SimpleCard(Card):
         self._real_body = pixie.SeqSpan()
         self._real_body.append(pixie.Span(text=txt.text, font=txt.font))
 
+    @property
+    def divider(self):
+        return self._divider
+
+    @divider.setter
+    def divider(self, path: str):
+        self._divider = pixie.read_image(path)
+        if not self._divider_scale_factor:
+            self._divider_scale_factor = self._content_width / self._divider.width
+
+    @property
+    def divider_scale(self):
+        return self._divider_scale_factor
+
+    @divider_scale.setter
+    def divider_scale(self, scale: float):
+        self._divider_scale_factor = scale
+
     def auto_height(self):
-        content_width = self.resolution[0] - 2 * (self.resolution[0] * (self.margin[0] / 100))
-        arrangement = self._real_body.typeset(bounds=pixie.Vector2(content_width, 1))
+        arrangement = self._real_body.typeset(bounds=pixie.Vector2(self._content_width, 1))
         text_height = arrangement.layout_bounds().y
         content_height = text_height
-        #TODO Divider
-        # If divider, add divider + its margin to content_height
+        
+        # If divider, add divider + its margins to content_height
+        # NOTE: margins is 2x margin percentage times content height (not total height)
         if self._divider:
-            pass
-
+            divider_height = self.divider.height * self.divider_scale
+            content_height += (content_height * 2 * (self._margin_y/100)) + divider_height
 
         # We're trying to find real height based on the content height and margin percentage.
         # If we want a 10% margin, then we want the content height to be 80% of the real height (because 10% on both top and bottom)
         # So, to work backwards, we can't multiply "real height * content percentage", so we divide "content height / 2 * margin percentage"
-
         self._res_y = round(content_height / (1 - (2 * self.margin[1] / 100)))
+        self._content_height = content_height
 
     def render(self):
         image, context = self._init_image()
@@ -297,5 +330,19 @@ class SimpleCard(Card):
             ),
             transform = pixie.translate(*real_margins)
         )
+
+        if self.divider:
+            #resize
+            resize_x = int(self.divider.width * self.divider_scale)
+            resize_y = int(self.divider.height * self.divider_scale)
+            self._divider = self.divider.resize(resize_x, resize_y)
+
+            #move
+            translate_x = (self.resolution[0] - self.divider.width) / 2
+            translate_y = real_margins[1] + self._content_height - self.divider.height
+            image.draw(
+                self.divider,
+                transform=pixie.translate(translate_x, translate_y)
+            )
 
         image.write_file(self.filename)
