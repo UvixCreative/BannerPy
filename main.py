@@ -374,12 +374,10 @@ class ComplexCard(Card):
         self._content_height = content_height
 
     def render(self):
-        print(self.__dict__)
         image, context = self._init_image()
 
         margin_offset = (self._res_x * self.margin_x / 100, self._res_y * self.margin_y / 100)
         bounds = (self._content_width, self._content_height)
-        print(bounds)
 
         y_offset = margin_offset[1]
         for field in self.fields:
@@ -418,8 +416,6 @@ class ComplexCard(Card):
                 )
                 y_offset += tmp_img.height + (tmp_img.height * (field.margin_y / 100)) # Offset for real height + bottom margin
             else:
-                print('ASDFJAWEIOFJAEW')
-                print(field.TYPE)
                 raise Exception('Unknown field type! Panicking!!!')
 
         image.write_file(self.filename)
