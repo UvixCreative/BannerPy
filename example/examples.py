@@ -1,4 +1,4 @@
-import pixie
+import pixie # For h_align and v_align enums
 from bannerpy import fields, cards
 
 fonts = {
@@ -14,7 +14,7 @@ def blank():
     Resolution 200x100 px
     No auto-height (because no content)
     """
-    test_card = cards.Card('example/blank.png', bg_color=(1, 0.5, 0.5, 1), resolution=(200, 100), auto_height=False)
+    test_card = cards.Card('blank.png', bg_color=(1, 0.5, 0.5, 1), resolution=(200, 100), auto_height=False)
     test_card.render()
 
 def simple():
@@ -25,7 +25,7 @@ def simple():
     35% y margin
     5% x margin
     """
-    test_card = cards.Card('example/simple.png', margin_x=5, margin_y=35, border_radius=20, bg_color=(0.4, 0.1, 0.2, 0.8))
+    test_card = cards.Card('simple.png', margin_x=5, margin_y=35, border_radius=20, bg_color=(0.4, 0.1, 0.2, 0.8))
     
     body = fields.TextField('These results are not definitive. Further research is necessary to determine definitive results.', fonts['dejavusans'], 30, font_color=(0, 0, 0, 0.6))
 
@@ -40,10 +40,10 @@ def simple_with_underline():
     Background color default white
     Tweaked margins (all around)
     """
-    test_card = cards.Card('example/simple_with_underline.png', margin_x = 8, margin_y = 15, border_radius = 100)
+    test_card = cards.Card('simple_with_underline.png', margin_x = 8, margin_y = 15, border_radius = 100)
 
     title = fields.TextField('(Groth et al., 2011)', fonts['dejavusans'], 130, margin_y = 5, h_align=pixie.CENTER_ALIGN)
-    underline = fields.Image('example/short-squiggle.png', margin_x = 20, margin_y = 20)
+    underline = fields.Image('short-squiggle.png', margin_x = 20, margin_y = 20)
 
     test_card.fields = [title, underline]
 
@@ -59,7 +59,7 @@ def section_intro():
     This also tests changing a TextField font property, which tests the internal _update_span function
     """
 
-    test_card = cards.Card('example/simple_heading.png', bg_color=(0.235, 0.549, 0.255, 0.9), border_radius = 125, margin_y = 25)
+    test_card = cards.Card('simple_heading.png', bg_color=(0.235, 0.549, 0.255, 0.9), border_radius = 125, margin_y = 25)
 
     heading = fields.TextField('Part 1', fonts['grobold'], 150, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
     subheading = fields.TextField('Introduction', fonts['grobold'], 100, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
@@ -86,13 +86,13 @@ def heading_subheading_divider_body():
     divider = fields.Image('/home/bean/Nextcloud/beanstem/short-squiggle.png', margin_y=100, scale=0.75)
     body = fields.TextField('Body text, this is a lot of text that will take up space and hopefully wrap around just so I can make extra sure that it does wrap', fonts['dejavusans'], 50, h_align=pixie.RIGHT_ALIGN)
 
-    test_card = cards.Card('example/heading_subheading_divider_body.png', fields = [header, subtitle, divider, body])
+    test_card = cards.Card('heading_subheading_divider_body.png', fields = [header, subtitle, divider, body])
 
     test_card.render()
 
 def template_card():
     """
-    Loads example/example_template.yml for parameters
+    Loads example_template.yml for parameters
     Fills values with the `values` dict
     Exports to template_card.png
     """
@@ -103,7 +103,7 @@ def template_card():
         "organization": "Harvard University, MA"
     }
 
-    test_card = cards.TemplateCard(template='example/example_template.yml', filename='example/template_card.png', **values)
+    test_card = cards.TemplateCard(template='example_template.yml', filename='template_card.png', **values)
 
     test_card.render()
 
