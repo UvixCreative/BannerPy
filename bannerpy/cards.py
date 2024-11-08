@@ -1,4 +1,6 @@
 import pixie as _pixie
+from yaml import load as _loadyml
+from yaml import Loader as _Loader
 from .fields import Field as _Field
 from .fields import TextField as _TextField
 from .fields import Image as _Image
@@ -43,7 +45,7 @@ class Card:
             self.margin_x = margin_x
             self.margin_y = margin_y
 
-        self.fields = fields        
+        self.fields = fields
 
     @property
     def filename(self):
@@ -173,7 +175,7 @@ class Card:
     def append(self, field: _Field):
         self.fields.append(field)
         if self._auto_height_enabled:
-            self.auto_height()        
+            self.auto_height()
 
     def _init_image(self):
         """
@@ -240,3 +242,63 @@ class Card:
                 raise Exception('Unknown field type! Panicking!!!')
 
         image.write_file(self.filename)
+
+class TemplateCard(Card):
+    config = {}
+    CARD_FIELDS = ['bg_color', 'border_radius', 'margin_x', 'margin_y', 'resolution', 'auto_height']
+    TEXT_FIELDS = ['font_path', 'font_size', 'font_color', 'h_align', 'v_align', 'margin_x', 'margin_y']
+    IMAGE_FIELDS = ['scale', 'margin_x', 'margin_y', 'auto_scale']
+
+    def __init__(self, template: str, filename: str, **kwargs):
+        self.config = _loadyml(open(template, 'r').read(), _Loader)
+        if self.config['color_type'] == 'hex':
+            self._translate_from_hex()
+
+        # Filter out config that's for Card init, just pass those kwargs straight in
+        card_config = {k: v for k, v in self.config.items() if k in self.CARD_FIELDS}
+
+        super().__init__(filename, fields=[], **card_config)
+
+        self._parse_fields(kwargs)
+
+    def _translate_from_hex(self):
+        tmp_bg_color = _pixie.parse_color(self.config.get('bg_color', '#ffffff'))
+        self.config['bg_color'] = (tmp_bg_color.r, tmp_bg_color.g, tmp_bg_color.b, tmp_bg_color.a)
+        for field_name, field in self.config['fields'].items():
+            if field['type'] == 'text':
+                tmp = _pixie.parse_color(field.get('font_color', '#000000'))
+                self.config['fields'][field_name]['font_color'] = (tmp.r, tmp.g, tmp.b, tmp.a)
+
+    def _parse_fields(self, input_vars):
+        for name, var in self.config['fields'].items():
+            tmp = None
+            if var['variable']:
+                var['value'] = input_vars.get(name, '')
+            if var['type'] == 'text':
+                # This lets you use 'font_path' directly in a text field, while also supporting a "fonts" dict in the template
+                if not var.get('font_path', None):
+                    var['font_path'] = self.config['fonts'][var.pop('font')]
+
+                h_align = var.get('h_align', '').lower()
+                if h_align == 'center':
+                    var['h_align'] = _pixie.CENTER_ALIGN
+                if h_align == 'left':
+                    var['h_align'] = _pixie.LEFT_ALIGN
+                if h_align == 'right':
+                    var['h_align'] = _pixie.RIGHT_ALIGN
+
+                v_align = var.get('v_align', '').lower()
+                if v_align == 'middle':
+                    var['v_align'] = _pixie.MIDDLE_ALIGN
+                if v_align == 'top':
+                    var['v_align'] = _pixie.TOP_ALIGN
+                if v_align == 'bottom':
+                    var['v_align'] = _pixie.BOTTOM_ALIGN
+
+                text_config = {k: v for k, v in var.items() if k in self.TEXT_FIELDS}
+                tmp = _TextField(text=var['value'], **text_config)
+            if var['type'] == 'image':
+                image_config = {k: v for k, v in var.items() if k in self.IMAGE_FIELDS}
+                tmp = _Image(path=var['value'], **image_config)
+                
+            self.append(tmp)
