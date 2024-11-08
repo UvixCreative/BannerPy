@@ -55,12 +55,14 @@ def section_intro():
     Background color a nice green, slightly ranslucent
 
     This also tests the Card.append() function
+    This also tests changing a TextField font property, which tests the internal _update_span function
     """
 
     test_card = cards.Card('test/simple_heading.png', bg_color=(0.235, 0.549, 0.255, 0.9), rounded_corners = 125, margin_y = 25)
 
     heading = fields.TextField('Part 1', fonts['grobold'], 150, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
-    subheading = fields.TextField('Introduction', fonts['dejavusans'], 100, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
+    subheading = fields.TextField('Introduction', fonts['grobold'], 100, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
+    subheading.font_path = fonts['dejavusans']
 
     test_card.append(heading)
     test_card.append(subheading)

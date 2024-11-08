@@ -105,7 +105,16 @@ class TextField(Field):
 
     @font_path.setter
     def font_path(self, font_path: str):
+        # If this is already set, we need to preserve the size and paint to reload it when the new font face is loaded
+        changing = bool(self.font)
+        if changing:
+            tmp_size = self.font.size
+            tmp_paint = self.font.paint
         self.font = _pixie.read_font(font_path)
+        if changing:
+            self.font.size = tmp_size
+            self.font.paint = tmp_paint
+            
         self._update_span()
         self._font_path = font_path
     
