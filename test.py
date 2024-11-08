@@ -23,10 +23,11 @@ def simple():
     Slightly rounded corners
     Baground color maroon-ish
     35% y margin
+    5% x margin
     """
-    test_card = cards.Card('example/simple.png', margin_y=35, border_radius=40, bg_color=(0.4, 0.1, 0.2, 0.8))
+    test_card = cards.Card('example/simple.png', margin_x=5, margin_y=35, border_radius=20, bg_color=(0.4, 0.1, 0.2, 0.8))
     
-    body = fields.TextField('This is a simple card', fonts['dejavusans'], 30, font_color=(0, 0, 0, 0.4))
+    body = fields.TextField('These results are not definitive. Further research is necessary to determine definitive results.', fonts['dejavusans'], 30, font_color=(0, 0, 0, 0.6))
 
     test_card.fields = [body]
 
