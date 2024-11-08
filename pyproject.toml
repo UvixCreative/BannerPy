@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "bannerpy"
+version = "0.1.0"
+description = "Parametric \"card\" generator for media like video or image. BannerPy can be used to generate image \"cards\" that can be used for things like name cards, title cards, and on-screen notes and citations."
+authors = ["Ben Rankin <me@benrank.in>"]
+license = "GPL v3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+PyYAML = "^6.0.2"
+pixie-python = "^4.3.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

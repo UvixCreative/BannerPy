@@ -120,6 +120,7 @@ if __name__ == "__main__":
 # fields.TextField.margin_x. Not tested here, but it should work
 # fields.TextField.v_align. Not tested here. I did test it, it works, but it probably doesn't do what you want it to
 
+# templatecard with variable value image. the only example template has a hard-coded image value
 # any setter functions. Not directly tested, but the setter functions are utilized by by __init__() functions, so they are tested
 # any getter functions. Not directly tested, but I'm pretty sure every property/getter is used by one of the tool functions (render, auto_height, stuff like that)
 # any errors or error handling. just don't break it, dingus.
