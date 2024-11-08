@@ -24,7 +24,7 @@ def simple():
     Baground color maroon-ish
     35% y margin
     """
-    test_card = cards.Card('test/simple.png', margin_y=35, rounded_corners=40, bg_color=(0.4, 0.1, 0.2, 0.8))
+    test_card = cards.Card('test/simple.png', margin_y=35, border_radius=40, bg_color=(0.4, 0.1, 0.2, 0.8))
     
     body = fields.TextField('This is a simple card', fonts['dejavusans'], 30, font_color=(0, 0, 0, 0.4))
 
@@ -39,7 +39,7 @@ def simple_with_underline():
     Background color default white
     Tweaked margins (all around)
     """
-    test_card = cards.Card('test/simple_with_underline.png', margin_x = 8, margin_y = 15, rounded_corners = 100)
+    test_card = cards.Card('test/simple_with_underline.png', margin_x = 8, margin_y = 15, border_radius = 100)
 
     title = fields.TextField('(Groth et al., 2011)', fonts['dejavusans'], 130, margin_y = 5, h_align=pixie.CENTER_ALIGN)
     underline = fields.Image('test/short-squiggle.png', margin_x = 20, margin_y = 20)
@@ -58,7 +58,7 @@ def section_intro():
     This also tests changing a TextField font property, which tests the internal _update_span function
     """
 
-    test_card = cards.Card('test/simple_heading.png', bg_color=(0.235, 0.549, 0.255, 0.9), rounded_corners = 125, margin_y = 25)
+    test_card = cards.Card('test/simple_heading.png', bg_color=(0.235, 0.549, 0.255, 0.9), border_radius = 125, margin_y = 25)
 
     heading = fields.TextField('Part 1', fonts['grobold'], 150, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
     subheading = fields.TextField('Introduction', fonts['grobold'], 100, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)

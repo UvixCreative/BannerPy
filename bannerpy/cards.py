@@ -9,20 +9,20 @@ class Card:
     _res_y = 10
     _filename = ""
     _bg_color = ()
-    _rounded_corners = 0
+    _border_radius = 0
     _margin_x = 10
     _margin_y = 20
     _content_width = 10
     _content_height = 10
     _auto_height_enabled = True
 
-    def __init__(self, filename: str, bg_color: tuple=(1, 1, 1, 1), rounded_corners: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, resolution: tuple=(1920, 1080), fields: list[_Field]=[], auto_height: bool=True):
+    def __init__(self, filename: str, bg_color: tuple=(1, 1, 1, 1), border_radius: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, resolution: tuple=(1920, 1080), fields: list[_Field]=[], auto_height: bool=True):
         """
         Provide any number of Field objects to the card in a list and generate a card. Currently only supports vertical alignment. 
         
         :param str filename: Path to the output file
         :param tuple bg_color: Tuple (R, G, B, A) to represent the background color (Detault: (1, 1, 1, 1)
-        :param int rounded_corners: Integer number for the radius (px) of the rounded corners of the card (Default: 0)
+        :param int border_radius: Integer number for the radius (px) of the rounded corners of the card (Default: 0)
         :param int margin: Shorthand to set margin x and margin y to the same
         :param int margin_x: Percentage for x margin for the content area (Default: 10)
         :param int margin_y: Percentage for y margin for the content area (Default: 20)
@@ -34,7 +34,7 @@ class Card:
 
         self.resolution = resolution
         self.bg_color = bg_color
-        self.rounded_corners = rounded_corners
+        self.border_radius = border_radius
         self._auto_height_enabled = auto_height
 
         if margin:
@@ -85,17 +85,17 @@ class Card:
         self._bg_color = _pixie.Color(*color)
 
     @property
-    def rounded_corners(self):
-        return self._rounded_corners
+    def border_radius(self):
+        return self._border_radius
 
-    @rounded_corners.setter
-    def rounded_corners(self, rounded: int):
+    @border_radius.setter
+    def border_radius(self, rounded: int):
         if not type(rounded) == int:
-            raise TypeError('rounded_corners must be a positive integer')
+            raise TypeError('border_radius must be a positive integer')
         if rounded < 0:
-            raise ValueError('rounded_corners must be a positive integer')
+            raise ValueError('border_radius must be a positive integer')
 
-        self._rounded_corners = rounded
+        self._border_radius = rounded
 
     def auto_height(self):
         content_height = 0
@@ -186,7 +186,7 @@ class Card:
         paint.color = self.bg_color
         ctx.fill_style = paint
 
-        ctx.rounded_rect(0, 0, *self.resolution, self.rounded_corners, self.rounded_corners, self.rounded_corners, self.rounded_corners)
+        ctx.rounded_rect(0, 0, *self.resolution, self.border_radius, self.border_radius, self.border_radius, self.border_radius)
         ctx.fill()
 
         return image
