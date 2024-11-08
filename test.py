@@ -52,12 +52,12 @@ def section_intro():
     """
     Heading: translucent black, grobold, size 150, center-aligned
     Subheading: translucent black, dejavu sans, size 100, center-aligned
-    Background color a nice green
+    Background color a nice green, slightly ranslucent
 
     This also tests the Card.append() function
     """
 
-    test_card = cards.Card('test/simple_heading.png', bg_color=(0.235, 0.549, 0.255, 1), rounded_corners = 125, margin_y = 25)
+    test_card = cards.Card('test/simple_heading.png', bg_color=(0.235, 0.549, 0.255, 0.9), rounded_corners = 125, margin_y = 25)
 
     heading = fields.TextField('Part 1', fonts['grobold'], 150, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
     subheading = fields.TextField('Introduction', fonts['dejavusans'], 100, font_color = (0, 0, 0, 0.7), h_align=pixie.CENTER_ALIGN)
@@ -80,7 +80,7 @@ def heading_subheading_divider_body():
     """
     header = fields.TextField('Heading', fonts['grobold'], 100, margin_y=10, h_align=pixie.CENTER_ALIGN, font_color=(0.2, 1, 0.2, 1))
     subtitle = fields.TextField('Subtitle', fonts['dejavusans'], 70, h_align=pixie.CENTER_ALIGN)
-    divider = fields.Image('/home/bean/Nextcloud/beanstem/short-squiggle.png', margin_y=100, scale=0.75,)
+    divider = fields.Image('/home/bean/Nextcloud/beanstem/short-squiggle.png', margin_y=100, scale=0.75)
     body = fields.TextField('Body text, this is a lot of text that will take up space and hopefully wrap around just so I can make extra sure that it does wrap', fonts['dejavusans'], 50, h_align=pixie.RIGHT_ALIGN)
 
     test_card = cards.Card('test/heading_subheading_divider_body.png', fields = [header, subtitle, divider, body])
@@ -93,3 +93,13 @@ if __name__ == "__main__":
     simple_with_underline()
     section_intro()
     heading_subheading_divider_body()
+
+# NOTE: missing tests:
+# fields.Image.auto_scale = False. Not directly tested, but it's disabled in heading_subheading_divider_body when scale is manually specified
+# fields.Image.margin_x. Not tested here, but it should work
+# fields.TextField.margin_x. Not tested here, but it should work
+# fields.TextField.v_align. Not tested here. I did test it, it works, but it probably doesn't do what you want it to
+
+# any setter functions. Not directly tested, but the setter functions are utilized by by __init__() functions, so they are tested
+# any getter functions. Not directly tested, but I'm pretty sure every property/getter is used by one of the tool functions (render, auto_height, stuff like that)
+# any errors or error handling. just don't break it, dingus.
