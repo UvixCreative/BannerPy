@@ -142,8 +142,8 @@ test_card.render()
 ## Technical overview
 
 BannerPy has 4 main parts:
-- `Card` class
-- `TemplateCard` class
+- [Card class](#Card-class)
+- [TemplateCard class](#TemplateCard-class)
 - `TextField` class
 - `Image` class
 
