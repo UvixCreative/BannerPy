@@ -18,7 +18,7 @@ class Image(Field):
     _path = ""
     _auto_scale_enabled = True
 
-    def __init__(self, path: str, scale: float=1, margin_x: int=0, margin_y: int=0, auto_scale: bool=True):
+    def __init__(self, path: str, scale: float=None, margin_x: int=0, margin_y: int=0, auto_scale: bool=True):
         """
         :param str path: Path to an image or SVG
         :param float scale: Number to scale the image evenly (Default: 1)
@@ -32,6 +32,7 @@ class Image(Field):
             self.scale = scale
             self._auto_scale_enabled = False
         else:
+            self.scale = 1
             self._auto_scale_enabled = auto_scale
 
     @property
