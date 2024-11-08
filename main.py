@@ -37,8 +37,11 @@ class Image(Field):
         """
         super().__init__(margin_x, margin_y)
         self.path = path
-        self.scale = scale
-        self._auto_scale_enabled = auto_scale
+        if scale:
+            self.scale = scale
+            self._auto_scale_enabled = False
+        else:
+            self._auto_scale_enabled = auto_scale
 
     @property
     def path(self):
@@ -353,33 +356,33 @@ class ComplexCard(Card):
             if field.TYPE == "text":
                 arrangement = field._span.typeset(bounds=pixie.Vector2(self._content_width, 1))
                 field_height = arrangement.layout_bounds().y
-                content_height += text_height
             elif field.TYPE == "image":
                 if field._auto_scale_enabled:
-                    field.auto_scale(self._content_width, 10000000000000000) # This isn't perfect. Obviously. It's intended to support scaling to fit x, not y.
+                    field.auto_scale(self._content_width, field.img.height) # This isn't perfect. Obviously. It's intended to support scaling to fit x, not y.
                 field_height = field.img.height * field.scale
-                content_height += img_height
             else:
                 raise Exception('Unknown field type! Panicking!!!')
 
+            content_height += field_height
             # Add the per-field margin!
             content_height += field_height * (2 * field.margin_y / 100)
 
         # We're trying to find real height based on the content height and margin percentage.
         # If we want a 10% margin, then we want the content height to be 80% of the real height (because 10% on both top and bottom)
         # So, to work backwards, we can't multiply "real height * content percentage", so we divide "content height / 2 * margin percentage"
-        self._res_y = round(content_height / (1 - (2 * self.margin_y / 100)))
+        self._res_y = round(content_height / (1 - (2 * self.margin_y / 100))) + 1
         self._content_height = content_height
 
     def render(self):
+        print(self.__dict__)
         image, context = self._init_image()
 
         margin_offset = (self._res_x * self.margin_x / 100, self._res_y * self.margin_y / 100)
         bounds = (self._content_width, self._content_height)
+        print(bounds)
 
         y_offset = margin_offset[1]
         for field in self.fields:
-            y_offset += field.margin_y / 100
             if field.TYPE == "text":
                 arrangement = field._span.typeset(
                         bounds = pixie.Vector2(*bounds),
@@ -395,37 +398,29 @@ class ComplexCard(Card):
                 )
 
                 y_offset += text_height + (text_height * field.margin_y / 100) # Offset for real height + bottom margin
-            if field.TYPE == "image":
+            elif field.TYPE == "image":
                 if field._auto_scale_enabled:
-                    field.auto_scale(self._content_width, 10000000000000000) # Again, not perfect.
+                    field.auto_scale(self._content_width, field.img.height) # Again, not perfect.
+
                 #resize
                 resize_x = int(field.img.width * field.scale)
                 resize_y = int(field.img.height * field.scale)
                 tmp_img = field.img.resize(resize_x, resize_y)
 
+                y_offset += tmp_img.height * (field.margin_y / 100) # add top margin before printing image
+
                 #move
                 translate_x = (self._res_x - tmp_img.width) / 2 # center, doesn't support other justification types right now. TODO?
-                translate_y = y_offset
+                translate_y = y_offset # TODO: See if I need to add "half the image height" or something to center it properly
                 image.draw(
                     tmp_img,
                     transform=pixie.translate(translate_x, translate_y)
                 )
+                y_offset += tmp_img.height + (tmp_img.height * (field.margin_y / 100)) # Offset for real height + bottom margin
             else:
-                raice Exception('Unknown field type! Panicking!!!')
-
-        if self.divider:
-            #resize
-            resize_x = int(self.divider.width * self.divider_scale)
-            resize_y = int(self.divider.height * self.divider_scale)
-            self._divider = self.divider.resize(resize_x, resize_y)
-
-            #move
-            translate_x = (self.resolution[0] - self.divider.width) / 2 # center
-            translate_y = real_margins[1] + self._content_height - self.divider.height
-            image.draw(
-                self.divider,
-                transform=pixie.translate(translate_x, translate_y)
-            )
+                print('ASDFJAWEIOFJAEW')
+                print(field.TYPE)
+                raise Exception('Unknown field type! Panicking!!!')
 
         image.write_file(self.filename)
     
@@ -492,3 +487,51 @@ class SimpleCard(Card):
     @divider_scale.setter
     def divider_scale(self, scale: float):
         self._divider_scale_factor = scale
+
+    def auto_height(self):
+        arrangement = self._real_body.typeset(bounds=pixie.Vector2(self._content_width, 1))
+        text_height = arrangement.layout_bounds().y
+        content_height = text_height
+        
+        # If divider, add divider + its margins to content_height
+        # NOTE: margins is 2x margin percentage times content height (not total height)
+        if self._divider:
+            divider_height = self.divider.height * self.divider_scale
+            content_height += (content_height * 2 * (self._margin_y/100)) + divider_height
+
+        # We're trying to find real height based on the content height and margin percentage.
+        # If we want a 10% margin, then we want the content height to be 80% of the real height (because 10% on both top and bottom)
+        # So, to work backwards, we can't multiply "real height * content percentage", so we divide "content height / 2 * margin percentage"
+        self._res_y = round(content_height / (1 - (2 * self.margin[1] / 100)))
+        self._content_height = content_height
+
+    def render(self):
+        image, context = self._init_image()
+
+        real_margins = (self.resolution[0] * self.margin[0] / 100, self.resolution[1] * self.margin[1] / 100)
+        real_bounds = (self.resolution[0] - (real_margins[0] * 2), self.resolution[1] - (real_margins[1] * 2))
+
+        image.arrangement_fill_text(
+            self._real_body.typeset(
+                bounds = pixie.Vector2(*real_bounds),
+                h_align = self.body_text.h_align,
+                v_align = self.body_text.v_align
+            ),
+            transform = pixie.translate(*real_margins)
+        )
+
+        if self.divider:
+            #resize
+            resize_x = int(self.divider.width * self.divider_scale)
+            resize_y = int(self.divider.height * self.divider_scale)
+            self._divider = self.divider.resize(resize_x, resize_y)
+
+            #move
+            translate_x = (self.resolution[0] - self.divider.width) / 2
+            translate_y = real_margins[1] + self._content_height - self.divider.height
+            image.draw(
+                self.divider,
+                transform=pixie.translate(translate_x, translate_y)
+            )
+
+        image.write_file(self.filename)
