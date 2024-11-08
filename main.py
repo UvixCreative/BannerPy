@@ -8,51 +8,121 @@ def namecard():
 
 def citation():
     return
+
+class Field:
+    TYPE="null"
+
+    margin_x = 0
+    margin_y = 0
+
+    def __init__(self, margin_x: int=0, margin_y: int=0):
+        self.margin_x = margin_x
+        self.margin_y = margin_y
+
+class Image(Field):
+    TYPE="image"
+
+    img = None
+    scale = 1
+    _path = ""
+    _auto_scale_enabled = True
+
+    def __init__(self, path: str, scale: float=1, margin_x: int=0, margin_y: int=0, auto_scale: bool=True):
+        """
+        :param str path: Path to an image or SVG
+        :param float scale: Number to scale the image evenly (Default: 1)
+        :param int margin_x: Additional margin for x (left and right) as a percentage of the field width (Default: 0)
+        :param int margin_y: Additional margin for y (top and bottom) as a percentage of the field height (Default: 0)
+        :param bool auto_scale: Whether to automatically scale the image if possible (Default: True)
+        """
+        super().__init__(margin_x, margin_y)
+        self.path = path
+        self.scale = scale
+        self._auto_scale_enabled = auto_scale
+
+    @property
+    def path(self):
+        return self._path
+
+    @path.setter
+    def path(self, path: str):
+        self.img = pixie.read_image(path)
+        self._path = path
+
+    def auto_scale(self, max_width: int, max_height: int):
+        """
+        Provide a max width and height container for the image and automatically set the scale property to fit within the container
+        """
+        delta_width = abs(max_width - self.img.width)
+        delta_height = abs(max_height - self.img.height)
+        if delta_width > delta_height:
+            self.scale = max_width / self.img.width
+        else:
+            self.scale = max_height / self.img.height
+
+class TextField(Field):
+    TYPE="text"
     
-class TextField:
-    _font = None
+    font = None
     _text = ""
+    _font_path = ""
     _font_color = ()
     _h_align = 0
     _v_align = 0
+    _span = None
 
-    def __init__(self, text: str, font_path: str, font_size: int=12, font_color: tuple=(0, 0, 0, 1), h_align: int=0, v_align: int=0):
-        self.text = text
-        self.font = font_path
+    def __init__(self, text: str, font_path: str, font_size: int=12, font_color: tuple=(0, 0, 0, 1), h_align: int=0, v_align: int=0, margin_x: int=0, margin_y: int=0):
+        """
+        :param str text: Text value for the field
+        :param str font_path: Path to the font to load
+        :param int font_size: Font size
+        :param tuple font_color: 4-field tuple (R, G, B, A) to represent the font color
+        :param int h_align: Enum for horizontal text alignment (see [pixie enums](https://github.com/treeform/pixie-python/blob/master/src/pixie/pixie.py#L87)) (Default: 0, left)
+        :param int v_align: Enum for vertical text alignment (see [pixie enums](https://github.com/treeform/pixie-python/blob/master/src/pixie/pixie.py#L87)) (Default: 0, top)
+        :param int margin_x: Additional margin for x (left and right) as a percentage of the field width (Default: 0)
+        :param int margin_y: Additional margin for y (top and bottom) as a percentage of the field height (Default: 0)
+        """
+        super().__init__(margin_x, margin_y)
+        self._span = pixie.SeqSpan()        
+        self._text = text
+        self.font_path = font_path
         self.font_size = font_size
         self.font_color = font_color
         self.h_align = h_align
         self.v_align = v_align
 
+    def _update_span(self):
+        self._span.clear()
+        self._span.append(pixie.Span(text=self.text, font=self.font))
+
     @property
     def text(self):
-        """Text value"""
         return self._text
 
     @text.setter
-    def text(self, in_text: str):
-        if not type(in_text) == str:
-            raise TypeError('Text must be a string')
-
-        self._text = in_text
-
+    def text(self, text: str):
+        self._text = text
+        self._update_span()
+        
     @property
-    def font(self):
-        """Font for the text field"""
-        return self._font
+    def font_path(self):
+        return self._font_path
 
-    @font.setter
-    def font(self, font_path: str):
-        self._font = pixie.read_font(font_path)
+    @font_path.setter
+    def font_path(self, font_path: str):
+        self.font = pixie.read_font(font_path)
+        self._update_span()
+        self._font_path = font_path
     
     @property
     def font_size(self):
         """Font size"""
-        return self._font.size
+        return self.font.size
 
     @font_size.setter
     def font_size(self, size: int):
-        self._font.size = size
+        self.font.size = size
+        self._update_span()
 
     @property
     def font_color(self):
@@ -61,7 +131,8 @@ class TextField:
 
     @font_color.setter
     def font_color(self, color: tuple):
-        self._font.paint.color = pixie.Color(*color)
+        self.font.paint.color = pixie.Color(*color)
+        self._update_span()
 
     @property
     def h_align(self):
@@ -237,6 +308,129 @@ class Card:
         image, context = self._init_image()
         image.write_file(self.filename)
 
+class ComplexCard(Card):
+    _fields = ()
+    _auto_height_enabled = True
+
+    def __init__(self, filename: str, bg_color: tuple=(1, 1, 1, 1), rounded_corners: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, resolution: tuple=(1920, 1080), fields: list=[], auto_height: bool=True):
+        """
+        Provide any number of Field objects to the card in a list and generate a card. Currently only supports vertical alignment. 
+        
+        :param str filename: Path to the output file
+        :param tuple bg_color: Tuple (R, G, B, A) to represent the background color (Detault: (1, 1, 1, 1)
+        :param int rounded_corners: Integer number for the radius (px) of the rounded corners of the card (Default: 0)
+        :param int margin: Shorthand to set margin x and margin y to the same
+        :param int margin_x: Percentage for x margin for the content area (Default: 10)
+        :param int margin_y: Percentage for y margin for the content area (Default: 20)
+        :param tuple resolution: The resolution of the card (Default: (1920, 1080))
+        :param list fields: A list of Fields to populate the card.
+        :param bool auto_height: Whether to automatically determine the height of the card
+        """
+
+        super().__init__(filename, bg_color, rounded_corners, margin, margin_x, margin_y, resolution)
+        self.fields = fields
+        self._auto_height_enabled = auto_height
+
+    @property
+    def fields(self):
+        return self._fields
+
+    @fields.setter
+    def fields(self, fields: list[Field]):
+        self._fields = fields
+        if self._auto_height_enabled:
+            self.auto_height()
+        
+    def append(self, field: Field):
+        self.fields.append(field)
+        if self._auto_height_enabled:
+            self.auto_height()
+
+    def auto_height(self):
+        content_height = 0
+        for field in self.fields:
+            field_height = 0
+            if field.TYPE == "text":
+                arrangement = field._span.typeset(bounds=pixie.Vector2(self._content_width, 1))
+                field_height = arrangement.layout_bounds().y
+                content_height += text_height
+            elif field.TYPE == "image":
+                if field._auto_scale_enabled:
+                    field.auto_scale(self._content_width, 10000000000000000) # This isn't perfect. Obviously. It's intended to support scaling to fit x, not y.
+                field_height = field.img.height * field.scale
+                content_height += img_height
+            else:
+                raise Exception('Unknown field type! Panicking!!!')
+
+            # Add the per-field margin!
+            content_height += field_height * (2 * field.margin_y / 100)
+
+        # We're trying to find real height based on the content height and margin percentage.
+        # If we want a 10% margin, then we want the content height to be 80% of the real height (because 10% on both top and bottom)
+        # So, to work backwards, we can't multiply "real height * content percentage", so we divide "content height / 2 * margin percentage"
+        self._res_y = round(content_height / (1 - (2 * self.margin_y / 100)))
+        self._content_height = content_height
+
+    def render(self):
+        image, context = self._init_image()
+
+        margin_offset = (self._res_x * self.margin_x / 100, self._res_y * self.margin_y / 100)
+        bounds = (self._content_width, self._content_height)
+
+        y_offset = margin_offset[1]
+        for field in self.fields:
+            y_offset += field.margin_y / 100
+            if field.TYPE == "text":
+                arrangement = field._span.typeset(
+                        bounds = pixie.Vector2(*bounds),
+                        h_align = field.h_align,
+                        v_align = field.v_align
+                )
+                text_height = arrangement.layout_bounds().y
+                y_offset += text_height * (field.margin_y / 100) # add top margin before filling text
+                
+                image.arrangement_fill_text(
+                    arrangement,
+                    transform = pixie.translate(margin_offset[0], y_offset)
+                )
+
+                y_offset += text_height + (text_height * field.margin_y / 100) # Offset for real height + bottom margin
+            if field.TYPE == "image":
+                if field._auto_scale_enabled:
+                    field.auto_scale(self._content_width, 10000000000000000) # Again, not perfect.
+                #resize
+                resize_x = int(field.img.width * field.scale)
+                resize_y = int(field.img.height * field.scale)
+                tmp_img = field.img.resize(resize_x, resize_y)
+
+                #move
+                translate_x = (self._res_x - tmp_img.width) / 2 # center, doesn't support other justification types right now. TODO?
+                translate_y = y_offset
+                image.draw(
+                    tmp_img,
+                    transform=pixie.translate(translate_x, translate_y)
+                )
+            else:
+                raice Exception('Unknown field type! Panicking!!!')
+
+        if self.divider:
+            #resize
+            resize_x = int(self.divider.width * self.divider_scale)
+            resize_y = int(self.divider.height * self.divider_scale)
+            self._divider = self.divider.resize(resize_x, resize_y)
+
+            #move
+            translate_x = (self.resolution[0] - self.divider.width) / 2 # center
+            translate_y = real_margins[1] + self._content_height - self.divider.height
+            image.draw(
+                self.divider,
+                transform=pixie.translate(translate_x, translate_y)
+            )
+
+        image.write_file(self.filename)
+    
+                         
+
 class SimpleCard(Card):
     _divider = None
     _divider_scale_factor = None
@@ -298,51 +492,3 @@ class SimpleCard(Card):
     @divider_scale.setter
     def divider_scale(self, scale: float):
         self._divider_scale_factor = scale
-
-    def auto_height(self):
-        arrangement = self._real_body.typeset(bounds=pixie.Vector2(self._content_width, 1))
-        text_height = arrangement.layout_bounds().y
-        content_height = text_height
-        
-        # If divider, add divider + its margins to content_height
-        # NOTE: margins is 2x margin percentage times content height (not total height)
-        if self._divider:
-            divider_height = self.divider.height * self.divider_scale
-            content_height += (content_height * 2 * (self._margin_y/100)) + divider_height
-
-        # We're trying to find real height based on the content height and margin percentage.
-        # If we want a 10% margin, then we want the content height to be 80% of the real height (because 10% on both top and bottom)
-        # So, to work backwards, we can't multiply "real height * content percentage", so we divide "content height / 2 * margin percentage"
-        self._res_y = round(content_height / (1 - (2 * self.margin[1] / 100)))
-        self._content_height = content_height
-
-    def render(self):
-        image, context = self._init_image()
-
-        real_margins = (self.resolution[0] * self.margin[0] / 100, self.resolution[1] * self.margin[1] / 100)
-        real_bounds = (self.resolution[0] - (real_margins[0] * 2), self.resolution[1] - (real_margins[1] * 2))
-
-        image.arrangement_fill_text(
-            self._real_body.typeset(
-                bounds = pixie.Vector2(*real_bounds),
-                h_align = self.body_text.h_align,
-                v_align = self.body_text.v_align
-            ),
-            transform = pixie.translate(*real_margins)
-        )
-
-        if self.divider:
-            #resize
-            resize_x = int(self.divider.width * self.divider_scale)
-            resize_y = int(self.divider.height * self.divider_scale)
-            self._divider = self.divider.resize(resize_x, resize_y)
-
-            #move
-            translate_x = (self.resolution[0] - self.divider.width) / 2
-            translate_y = real_margins[1] + self._content_height - self.divider.height
-            image.draw(
-                self.divider,
-                transform=pixie.translate(translate_x, translate_y)
-            )
-
-        image.write_file(self.filename)
