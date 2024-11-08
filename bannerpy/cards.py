@@ -23,14 +23,14 @@ class Card:
         Provide any number of Field objects to the card in a list and generate a card. Currently only supports vertical alignment. 
         
         :param str filename: Path to the output file
-        :param tuple bg_color: Tuple (R, G, B, A) to represent the background color (Detault: (1, 1, 1, 1)
+        :param tuple bg_color: Tuple (R, G, B, A) to represent the background color (Detault: (1, 1, 1, 1))
         :param int border_radius: Integer number for the radius (px) of the rounded corners of the card (Default: 0)
         :param int margin: Shorthand to set margin x and margin y to the same
         :param int margin_x: Percentage for x margin for the content area (Default: 10)
         :param int margin_y: Percentage for y margin for the content area (Default: 20)
         :param tuple resolution: The resolution of the card (Default: (1920, 1080))
-        :param list fields: A list of Fields to populate the card.
-        :param bool auto_height: Whether to automatically determine the height of the card
+        :param list fields: A list of Fields to populate the card. (Default: [])
+        :param bool auto_height: Whether to automatically determine the height of the card (Default: True)
         """
         self.filename = filename
 
