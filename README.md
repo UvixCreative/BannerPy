@@ -2,6 +2,9 @@
 
 ![BannerPy logo](logo.svg)
 
+[![PyPI - Version](https://img.shields.io/pypi/v/bannerpy)](https://pypi.org/project/bannerpy/)
+[![GitHub link](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/UvixCreative/BannerPy)
+
 ## Introduction
 
 BannerPy is a library built on [pixie-python](https://github.com/treeform/pixie-python) for programatically generating "cards" that can be used for visual media (video, images, promotional material). BannerPy was built with on-screen assets for video production in mind. You can generate name cards, notes/sidebars, on-screen citations, and more.
