@@ -5,10 +5,46 @@ from .fields import Field as _Field
 from .fields import TextField as _TextField
 from .fields import Image as _Image
 
+class Shadow:
+    _offset = tuple([0, 0])
+    _color = _pixie.Color(0, 0, 0, 1)
+
+    spread = 0
+    blur = 0
+    
+    def __init__(self, offset: tuple=(4, 4), spread: int=0, blur: int=0, color: tuple=(0, 0, 0, 1)):
+        """
+        documentation
+        """
+
+        self.offset = offset
+        self.color = color
+
+        self.spread = spread
+        self.blur = blur
+
+    @property
+    def offset(self):
+        return (self._offset.x, self._offset.y)
+
+    @offset.setter
+    def offset(self, offset: tuple):
+        self._offset = _pixie.Vector2(offset[0], offset[1])
+
+    @property
+    def color(self):
+        return self._color
+
+    @color.setter
+    def color(self, color: tuple):
+        self._color = _pixie.Color(*color)    
+
 class Card:
     _fields = ()
-    _res_x = 10
-    _res_y = 10
+    _res_x = 0
+    _res_y = 0
+    _size_x = 10
+    _size_y = 10
     _filename = ""
     _bg_color = ()
     _border_radius = 0
@@ -17,8 +53,9 @@ class Card:
     _content_width = 10
     _content_height = 10
     _auto_height_enabled = True
+    _shadow = None
 
-    def __init__(self, filename: str, bg_color: tuple=(1, 1, 1, 1), border_radius: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, resolution: tuple=(1920, 1080), fields: list[_Field]=[], auto_height: bool=True):
+    def __init__(self, filename: str, bg_color: tuple=(1, 1, 1, 1), border_radius: int=0, margin: int=None, margin_x: int=10, margin_y: int=20, size: tuple=(1920, 1080), fields: list[_Field]=[], auto_height: bool=True, shadow: Shadow=None):
         """
         Provide any number of Field objects to the card in a list and generate a card. Currently only supports vertical alignment. 
         
@@ -28,13 +65,15 @@ class Card:
         :param int margin: Shorthand to set margin x and margin y to the same
         :param int margin_x: Percentage for x margin for the content area (Default: 10)
         :param int margin_y: Percentage for y margin for the content area (Default: 20)
-        :param tuple resolution: The resolution of the card (Default: (1920, 1080))
+        :param tuple size: The size of the card (Default: (1920, 1080))
         :param list fields: A list of Fields to populate the card. (Default: [])
         :param bool auto_height: Whether to automatically determine the height of the card (Default: True)
+        :param Shadow shadow: Shadow object to apply to the card (Default: None)        
         """
         self.filename = filename
 
-        self.resolution = resolution
+        self.size = size
+        self.resolution = size # Will be overridden if there's shadow
         self.bg_color = bg_color
         self.border_radius = border_radius
         self._auto_height_enabled = auto_height
@@ -46,6 +85,9 @@ class Card:
             self.margin_y = margin_y
 
         self.fields = fields
+
+        if shadow:
+            self.shadow = shadow
 
     @property
     def filename(self):
@@ -60,12 +102,12 @@ class Card:
 
 
     def _update_content_res(self):
-        self._content_width = self._res_x - 2 * (self._res_x * (self._margin_x/100))
-        self._content_height = self._res_y - 2 * (self._res_y * (self._margin_y/100))        
-        
+        self._content_width = self._size_x - 2 * (self._size_x * (self._margin_x/100))
+        self._content_height = self._size_y - 2 * (self._size_y * (self._margin_y/100))
+
     @property
     def resolution(self):
-        """Resolution of the card image file to be generated"""
+        """Size of the card image file to be generated"""
         return (self._res_x, self._res_y)
 
     @resolution.setter
@@ -76,6 +118,20 @@ class Card:
             
         self._res_x = res[0]
         self._res_y = res[1]
+        
+    @property
+    def size(self):
+        """Size of the card (minus shadow offset)"""
+        return (self._size_x, self._size_y)
+
+    @size.setter
+    def size(self, size: tuple):
+        for i in size:
+            if i < 1:
+                raise ValueError('x and y must be positive integers')
+            
+        self._size_x = size[0]
+        self._size_y = size[1]
         self._update_content_res()
 
     @property
@@ -120,8 +176,12 @@ class Card:
         # We're trying to find real height based on the content height and margin percentage.
         # If we want a 10% margin, then we want the content height to be 80% of the real height (because 10% on both top and bottom)
         # So, to work backwards, we can't multiply "real height * content percentage", so we divide "content height / 2 * margin percentage"
-        self._res_y = round(content_height / (1 - (2 * self.margin_y / 100))) + 1
+        self._size_y = round(content_height / (1 - (2 * self.margin_y / 100))) + 1
         self._content_height = content_height
+
+        self.resolution = self.size
+        if self.shadow:
+            self.shadow = self._shadow # silly way to recalc res based on size
 
     @property
     def margin(self):
@@ -177,6 +237,15 @@ class Card:
         if self._auto_height_enabled:
             self.auto_height()
 
+    @property
+    def shadow(self):
+        return self._shadow
+
+    @shadow.setter
+    def shadow(self, obj: Shadow):
+        self._shadow = obj
+        self.resolution = (int(self.size[0] + (2 * (abs(obj.offset[0]) + obj.blur))),  int(self.size[1] + (2 * (abs(obj.offset[1]) + obj.blur))))        
+
     def _init_image(self):
         """
         Render the background, return the image and the context
@@ -188,8 +257,20 @@ class Card:
         paint.color = self.bg_color
         ctx.fill_style = paint
 
-        ctx.rounded_rect(0, 0, *self.resolution, self.border_radius, self.border_radius, self.border_radius, self.border_radius)
+        start_pos = [((self._res_x - self._size_x) / 2), ((self._res_y - self._size_y) / 2)]
+
+        ctx.rounded_rect(*start_pos, *self.size, self.border_radius, self.border_radius, self.border_radius, self.border_radius)
         ctx.fill()
+
+        if self.shadow:
+            image.draw(image.shadow(
+                blur=self.shadow.blur,
+                offset=self.shadow._offset,
+                color=self.shadow.color,
+                spread=self.shadow.spread))
+            #self._render_shadow(image, ctx)
+
+        ctx.fill()        
 
         return image
         
@@ -199,7 +280,7 @@ class Card:
         """
         image = self._init_image()
 
-        margin_offset = (self._res_x * self.margin_x / 100, self._res_y * self.margin_y / 100)
+        margin_offset = ((self._size_x * self.margin_x / 100) + ((self._res_x - self._size_x)/2), ((self._size_y * self.margin_y / 100) + ((self._res_y - self._size_y)/2)))
         bounds = (self._content_width, self._content_height)
 
         y_offset = margin_offset[1]
@@ -231,7 +312,7 @@ class Card:
                 y_offset += tmp_img.height * (field.margin_y / 100) # add top margin before printing image
 
                 #move
-                translate_x = (self._res_x - tmp_img.width) / 2 # center, doesn't support other justification types right now. TODO?
+                translate_x = (self._size_x - tmp_img.width) / 2 # center, doesn't support other justification types right now. TODO?
                 translate_y = y_offset # TODO: See if I need to add "half the image height" or something to center it properly
                 image.draw(
                     tmp_img,
@@ -245,7 +326,7 @@ class Card:
 
 class TemplateCard(Card):
     config = {}
-    CARD_FIELDS = ['bg_color', 'border_radius', 'margin_x', 'margin_y', 'resolution', 'auto_height']
+    CARD_FIELDS = ['bg_color', 'border_radius', 'margin_x', 'margin_y', 'size', 'auto_height', 'shadow']
     TEXT_FIELDS = ['font_path', 'font_size', 'font_color', 'h_align', 'v_align', 'margin_x', 'margin_y']
     IMAGE_FIELDS = ['scale', 'margin_x', 'margin_y', 'auto_scale']
 
@@ -257,6 +338,13 @@ class TemplateCard(Card):
         # Filter out config that's for Card init, just pass those kwargs straight in
         card_config = {k: v for k, v in self.config.items() if k in self.CARD_FIELDS}
 
+        if 'shadow' in card_config.keys():
+            tmp = Shadow(offset = card_config['shadow'].get('offset', (4, 4)),
+                         blur = card_config['shadow'].get('blur', 0),
+                         spread = card_config['shadow'].get('spread', 0),
+                         color = card_config['shadow'].get('color', (0, 0, 0, 1)))
+            card_config['shadow'] = tmp
+
         super().__init__(filename, fields=[], **card_config)
 
         self._parse_fields(kwargs)
@@ -264,6 +352,10 @@ class TemplateCard(Card):
     def _translate_from_hex(self):
         tmp_bg_color = _pixie.parse_color(self.config.get('bg_color', '#ffffff'))
         self.config['bg_color'] = (tmp_bg_color.r, tmp_bg_color.g, tmp_bg_color.b, tmp_bg_color.a)
+        if 'shadow' in self.config.keys():
+            tmp_shadow_color = _pixie.parse_color(self.config['shadow'].get('color', '#000000'))
+            self.config['shadow']['color'] = (tmp_shadow_color.r, tmp_shadow_color.g, tmp_shadow_color.b, tmp_shadow_color.a)
+                                                  
         for field_name, field in self.config['fields'].items():
             if field['type'] == 'text':
                 tmp = _pixie.parse_color(field.get('font_color', '#000000'))

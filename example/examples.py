@@ -14,7 +14,7 @@ def blank():
     Resolution 200x100 px
     No auto-height (because no content)
     """
-    test_card = cards.Card('blank.png', bg_color=(1, 0.5, 0.5, 1), resolution=(200, 100), auto_height=False)
+    test_card = cards.Card('blank.png', bg_color=(1, 0.5, 0.5, 1), size=(200, 100), auto_height=False)
     test_card.render()
 
 def simple():
@@ -107,6 +107,22 @@ def template_card():
 
     test_card.render()
 
+def drop_shadow():
+    """
+    documentation
+    """
+    test_card = cards.Card('drop_shadow.png', border_radius= 100, bg_color=(0.4, 0.1, 0.4, 1))
+
+    text = fields.TextField('I have a drop shadow! Look at me go it works like it\'s supposed to! Yippee!', fonts['dejavusans'], 100, font_color=(0.05, 0, 0.05, 1), h_align=pixie.CENTER_ALIGN)
+
+    test_card.fields = [text]
+
+    shadow = cards.Shadow(offset=(6, 6), blur=6)
+    test_card.shadow=shadow
+
+    test_card.render()
+    
+
 if __name__ == "__main__":
     blank()
     simple()
@@ -114,6 +130,7 @@ if __name__ == "__main__":
     section_intro()
     heading_subheading_divider_body()
     template_card()
+    drop_shadow()
 
 # NOTE: missing tests:
 # fields.Image.auto_scale = False. Not directly tested, but it's disabled in heading_subheading_divider_body when scale is manually specified
